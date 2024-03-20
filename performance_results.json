@@ -106,5 +106,11 @@
     "nanoseconds": 2024972,
     "milliseconds": 2,
     "seconds": 0.002024972
+  },
+  {
+    "timestamp": "2024-03-20T19:27:09.704467+02:00",
+    "nanoseconds": 4653080,
+    "milliseconds": 4,
+    "seconds": 0.00465308
   }
 ]

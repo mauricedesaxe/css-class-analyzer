@@ -49,9 +49,9 @@ func htmlFiles(fn func(string) []string) {
 			return err
 		}
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
+			wg.Add(1)
 			go func(path string) {
 				defer wg.Done()
-				wg.Add(1)
 				log.Printf("serving file: %s", path)
 				classNames := fn(path)
 				for _, className := range classNames {
@@ -69,6 +69,7 @@ func htmlFiles(fn func(string) []string) {
 			globalClassNames = append(globalClassNames, className)
 		}
 	}()
+	wg.Wait()
 
 	// remove duplicates from the class names of the whole file using a map cause it's faster
 	classMap := make(map[string]bool)
