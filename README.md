@@ -16,3 +16,5 @@ chmod +x .git/hooks/pre-commit
 5. Check the `performance_results.json` file to see the performance metrics of your runs. This file is automatically updated and should not be manually modified.
 
 Note: I'm aware this is a hacky way of testing performance. It's okay for now.
+
+Note: You can use git blame to cross-reference the performance metrics of each commit in the `performance_results.json` file.
