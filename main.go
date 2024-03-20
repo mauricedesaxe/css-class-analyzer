@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -64,6 +65,9 @@ func htmlFiles(fn func(string) []string) {
 		}
 	}
 	globalClassNames = uniqueClassNames
+
+	// sort the class names
+	slices.Sort(globalClassNames)
 
 	// write the class names to the log file
 	writer := bufio.NewWriter(logFile)
