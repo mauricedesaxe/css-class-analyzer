@@ -29,6 +29,7 @@ func classesFromFile(filename string) {
 		log.Fatalf("failed to open file: %s", err)
 	}
 	defer file.Close()
+	scanner := bufio.NewScanner(file)
 
 	// Open the log file to write to, wiping it clean on every start
 	logFile, err := os.OpenFile("classes.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
@@ -36,9 +37,7 @@ func classesFromFile(filename string) {
 		log.Fatalf("failed to open log file: %s", err)
 	}
 	defer logFile.Close()
-
-	// Create a new Scanner for the file
-	scanner := bufio.NewScanner(file)
+	writer := bufio.NewWriter(logFile)
 
 	// Loop through all the lines
 	for scanner.Scan() {
@@ -66,11 +65,16 @@ func classesFromFile(filename string) {
 		// split the class names by space
 		classNames := strings.Split(classAttrValue, " ")
 		for _, className := range classNames {
-			// write to log file
-			if _, err := logFile.WriteString(className + "\n"); err != nil {
+			// write the class name in the buffer to be flushed later to the log file
+			if _, err := writer.WriteString(className + "\n"); err != nil {
 				log.Fatalf("failed to write to log file: %s", err)
 			}
 		}
+	}
+
+	// Flush the writer to ensure all data is written to the file
+	if err := writer.Flush(); err != nil {
+		log.Fatalf("failed to flush writer: %s", err)
 	}
 
 	// Check for errors during Scan. End of file is expected and not reported by Scan as an error.
