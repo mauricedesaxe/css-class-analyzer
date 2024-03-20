@@ -24,8 +24,6 @@ func main() {
 	fmt.Println("done in ", elapsed)
 }
 
-var mu sync.Mutex
-
 // reads directory and children directories for html files and serves them to a function
 func htmlFiles(fn func(string) []string) {
 	cwd, _ := os.Getwd()
@@ -39,6 +37,7 @@ func htmlFiles(fn func(string) []string) {
 	defer logFile.Close()
 
 	wg := sync.WaitGroup{}
+	classNameChan := make(chan string, 1000) // Adjust buffer size as needed
 
 	// walk the directory and serve each html file to the function
 	// the function will return the class names of the file
@@ -55,9 +54,9 @@ func htmlFiles(fn func(string) []string) {
 				wg.Add(1)
 				log.Printf("serving file: %s", path)
 				classNames := fn(path)
-				mu.Lock()
-				globalClassNames = append(globalClassNames, classNames...)
-				mu.Unlock()
+				for _, className := range classNames {
+					classNameChan <- className // Send class names to the channel to be logged
+				}
 			}(path)
 		}
 		return nil
@@ -65,6 +64,11 @@ func htmlFiles(fn func(string) []string) {
 	if err != nil {
 		log.Fatalf("error walking the path %q: %v\n", cwd, err)
 	}
+	go func() {
+		for className := range classNameChan {
+			globalClassNames = append(globalClassNames, className)
+		}
+	}()
 
 	// remove duplicates from the class names of the whole file using a map cause it's faster
 	classMap := make(map[string]bool)
