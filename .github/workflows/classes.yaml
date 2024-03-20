@@ -1,0 +1,30 @@
+name: Check classes.log
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-classes-log:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the base branch
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Save classes.log from base branch
+        run: cp classes.log classes.log.base
+
+      - name: Checkout the PR branch
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Compare classes.log
+        run: |
+          if ! diff classes.log.base classes.log; then
+            echo "classes.log has been modified."
+            exit 1
+          fi
