@@ -82,5 +82,11 @@
     "nanoseconds": 5690417,
     "milliseconds": 5,
     "seconds": 0.005690417
+  },
+  {
+    "timestamp": "2024-03-20T18:50:47.457122+02:00",
+    "nanoseconds": 2733653,
+    "milliseconds": 2,
+    "seconds": 0.002733653
   }
 ]

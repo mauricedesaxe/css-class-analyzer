@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/html"
@@ -23,6 +24,8 @@ func main() {
 	fmt.Println("done in ", elapsed)
 }
 
+var mu sync.Mutex
+
 // reads directory and children directories for html files and serves them to a function
 func htmlFiles(fn func(string) []string) {
 	cwd, _ := os.Getwd()
@@ -35,6 +38,8 @@ func htmlFiles(fn func(string) []string) {
 	}
 	defer logFile.Close()
 
+	wg := sync.WaitGroup{}
+
 	// walk the directory and serve each html file to the function
 	// the function will return the class names of the file
 	// the class names will be appended to a global slice
@@ -45,9 +50,15 @@ func htmlFiles(fn func(string) []string) {
 			return err
 		}
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
-			log.Printf("serving file: %s", path)
-			classNames := fn(path)
-			globalClassNames = append(globalClassNames, classNames...)
+			go func(path string) {
+				defer wg.Done()
+				wg.Add(1)
+				log.Printf("serving file: %s", path)
+				classNames := fn(path)
+				mu.Lock()
+				globalClassNames = append(globalClassNames, classNames...)
+				mu.Unlock()
+			}(path)
 		}
 		return nil
 	})
