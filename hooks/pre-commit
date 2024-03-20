@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Check for changes in performance_results.json
+if git diff --exit-code --quiet performance_results.json; then
+  echo "No changes in performance_results.json. Proceeding with commit."
+else
+  echo "There are unstaged changes in performance_results.json. Please stage or discard them before committing."
+  exit 1
+fi
+
+# Run go test with verbose output
+go test -v ./...
+
+# Check if go test was successful
+if [ $? -ne 0 ]; then
+  echo "Tests failed. Aborting commit."
+  exit 1
+fi
+
+# Add performance_results.json to the staging area
+git add performance_results.json
+
+# If tests pass and performance_results.json is staged, continue with the commit
+exit 0
