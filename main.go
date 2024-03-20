@@ -60,10 +60,10 @@ func classesFromFile(filename string) {
 
 		// get the string between `class="` and `"` or `class='` and `'`
 		// this is effectively the class names string
-		classAttrValue := line[start+7 : start+7+end]
+		classString := line[start+7 : start+7+end]
 
 		// split the class names by space
-		classNames := strings.Split(classAttrValue, " ")
+		classNames := strings.Split(classString, " ")
 		for _, className := range classNames {
 			// write the class name in the buffer to be flushed later to the log file
 			if _, err := writer.WriteString(className + "\n"); err != nil {
