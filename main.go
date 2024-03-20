@@ -66,15 +66,16 @@ func classesFromFile(filename string) {
 		log.Fatalf("error during file scan: %s", err)
 	}
 
-	// remove duplicates from the class names of the whole file
-	for i := 0; i < len(globalClassNames); i++ {
-		for j := i + 1; j < len(globalClassNames); j++ {
-			if globalClassNames[i] == globalClassNames[j] {
-				globalClassNames = append(globalClassNames[:j], globalClassNames[j+1:]...)
-				j--
-			}
+	// remove duplicates from the class names of the whole file using a map cause it's faster
+	classMap := make(map[string]bool)
+	var uniqueClassNames []string
+	for _, className := range globalClassNames {
+		if _, exists := classMap[className]; !exists {
+			classMap[className] = true
+			uniqueClassNames = append(uniqueClassNames, className)
 		}
 	}
+	globalClassNames = uniqueClassNames
 
 	// use buffered writing to log the class names in a freshly created (clean-wiped) file `classes.log`
 	logFile, err := os.Create("classes.log")
