@@ -14,11 +14,34 @@ import (
 func main() {
 	startTime := time.Now()
 
-	classesFromFile("index.html")
+	htmlFiles(classesFromFile)
 
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime)
 	fmt.Println("done in ", elapsed)
+}
+
+// reads directory and children directories for html files and serves them to a function
+func htmlFiles(fn func(string)) {
+	// Open the current directory
+	dir, err := os.Open(".")
+	if err != nil {
+		log.Fatalf("failed to open directory: %s", err)
+	}
+	defer dir.Close()
+
+	// Read the directory
+	files, err := dir.Readdir(-1)
+	if err != nil {
+		log.Fatalf("failed to read directory: %s", err)
+	}
+
+	// Serve the HTML files to the function
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".html") {
+			fn(file.Name())
+		}
+	}
 }
 
 // read index.html file and serve each line to a new go routine
