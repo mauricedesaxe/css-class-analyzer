@@ -58,5 +58,53 @@
     "nanoseconds": 6166160,
     "milliseconds": 6,
     "seconds": 0.00616616
+  },
+  {
+    "timestamp": "2024-03-20T18:46:45.760972+02:00",
+    "nanoseconds": 5672271,
+    "milliseconds": 5,
+    "seconds": 0.005672271
+  },
+  {
+    "timestamp": "2024-03-20T18:47:02.446281+02:00",
+    "nanoseconds": 5656241,
+    "milliseconds": 5,
+    "seconds": 0.005656241
+  },
+  {
+    "timestamp": "2024-03-20T18:47:05.652339+02:00",
+    "nanoseconds": 5576820,
+    "milliseconds": 5,
+    "seconds": 0.00557682
+  },
+  {
+    "timestamp": "2024-03-20T18:47:55.515393+02:00",
+    "nanoseconds": 5690417,
+    "milliseconds": 5,
+    "seconds": 0.005690417
+  },
+  {
+    "timestamp": "2024-03-20T18:50:47.457122+02:00",
+    "nanoseconds": 2733653,
+    "milliseconds": 2,
+    "seconds": 0.002733653
+  },
+  {
+    "timestamp": "2024-03-20T19:00:26.932972+02:00",
+    "nanoseconds": 2189118,
+    "milliseconds": 2,
+    "seconds": 0.002189118
+  },
+  {
+    "timestamp": "2024-03-20T19:03:07.735586+02:00",
+    "nanoseconds": 2029845,
+    "milliseconds": 2,
+    "seconds": 0.002029845
+  },
+  {
+    "timestamp": "2024-03-20T19:03:19.196527+02:00",
+    "nanoseconds": 2024972,
+    "milliseconds": 2,
+    "seconds": 0.002024972
   }
 ]
