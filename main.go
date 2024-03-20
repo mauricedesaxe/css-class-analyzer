@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,24 +24,23 @@ func main() {
 
 // reads directory and children directories for html files and serves them to a function
 func htmlFiles(fn func(string)) {
-	// Open the current directory
-	dir, err := os.Open(".")
-	if err != nil {
-		log.Fatalf("failed to open directory: %s", err)
-	}
-	defer dir.Close()
+	cwd, _ := os.Getwd()
+	log.Println("Current working directory:", cwd)
 
-	// Read the directory
-	files, err := dir.Readdir(-1)
-	if err != nil {
-		log.Fatalf("failed to read directory: %s", err)
-	}
-
-	// Serve the HTML files to the function
-	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".html") {
-			fn(file.Name())
+	err := filepath.Walk(cwd, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
 		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+			log.Printf("serving file: %s", path)
+			fn(path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatalf("error walking the path %q: %v\n", cwd, err)
 	}
 }
 
