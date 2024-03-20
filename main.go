@@ -23,7 +23,7 @@ func main() {
 }
 
 // reads directory and children directories for html files and serves them to a function
-func htmlFiles(fn func(string)) {
+func htmlFiles(fn func(string) ([]string, error)) {
 	cwd, _ := os.Getwd()
 	log.Println("Current working directory:", cwd)
 
@@ -47,21 +47,19 @@ func htmlFiles(fn func(string)) {
 // read index.html file and serve each line to a new go routine
 // each go routine will check if the line contains a `class` attribute
 // if it does, it will classesFromFile the class names and log them (initially)
-func classesFromFile(filename string) {
+func classesFromFile(filename string) (globalClassNames []string, err error) {
 	// Open a file to read from
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("failed to open file: %s", err)
+		return nil, fmt.Errorf("failed to open file: %s", err)
 	}
 	defer file.Close()
 
 	// Parse the HTML file
 	doc, err := html.Parse(file)
 	if err != nil {
-		log.Fatalf("failed to parse HTML file: %s", err)
+		return nil, fmt.Errorf("failed to parse HTML file: %s", err)
 	}
-
-	var globalClassNames []string
 
 	// Define a recursive function to traverse the HTML nodes
 	var traverse func(*html.Node)
@@ -96,18 +94,20 @@ func classesFromFile(filename string) {
 	// use buffered writing to log the class names in a freshly created (clean-wiped) file `classes.log`
 	logFile, err := os.Create("classes.log")
 	if err != nil {
-		log.Fatalf("failed to create log file: %s", err)
+		return nil, fmt.Errorf("failed to create log file: %s", err)
 	}
 	defer logFile.Close()
 	writer := bufio.NewWriter(logFile)
 	for _, className := range globalClassNames {
 		_, err := writer.WriteString(className + "\n")
 		if err != nil {
-			log.Fatalf("failed to write to log file: %s", err)
+			return nil, fmt.Errorf("failed to write to log file: %s", err)
 		}
 	}
 	err = writer.Flush()
 	if err != nil {
-		log.Fatalf("failed to flush writer: %s", err)
+		return nil, fmt.Errorf("failed to flush buffer: %s", err)
 	}
+
+	return globalClassNames, nil
 }
