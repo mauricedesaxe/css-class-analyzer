@@ -58,5 +58,23 @@
     "nanoseconds": 6166160,
     "milliseconds": 6,
     "seconds": 0.00616616
+  },
+  {
+    "timestamp": "2024-03-20T18:46:45.760972+02:00",
+    "nanoseconds": 5672271,
+    "milliseconds": 5,
+    "seconds": 0.005672271
+  },
+  {
+    "timestamp": "2024-03-20T18:47:02.446281+02:00",
+    "nanoseconds": 5656241,
+    "milliseconds": 5,
+    "seconds": 0.005656241
+  },
+  {
+    "timestamp": "2024-03-20T18:47:05.652339+02:00",
+    "nanoseconds": 5576820,
+    "milliseconds": 5,
+    "seconds": 0.00557682
   }
 ]
