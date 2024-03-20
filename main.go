@@ -31,13 +31,7 @@ func classesFromFile(filename string) {
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
 
-	// Open the log file to write to, wiping it clean on every start
-	logFile, err := os.OpenFile("classes.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		log.Fatalf("failed to open log file: %s", err)
-	}
-	defer logFile.Close()
-	writer := bufio.NewWriter(logFile)
+	var globalClassNames []string
 
 	// Loop through all the lines
 	for scanner.Scan() {
@@ -62,19 +56,9 @@ func classesFromFile(filename string) {
 		// this is effectively the class names string
 		classString := line[start+7 : start+7+end]
 
-		// split the class names by space
-		classNames := strings.Split(classString, " ")
-		for _, className := range classNames {
-			// write the class name in the buffer to be flushed later to the log file
-			if _, err := writer.WriteString(className + "\n"); err != nil {
-				log.Fatalf("failed to write to log file: %s", err)
-			}
-		}
-	}
-
-	// Flush the writer to ensure all data is written to the file
-	if err := writer.Flush(); err != nil {
-		log.Fatalf("failed to flush writer: %s", err)
+		// add the class names of this line to the class names of the whole file
+		localClassNames := strings.Split(classString, " ")
+		globalClassNames = append(globalClassNames, localClassNames...)
 	}
 
 	// Check for errors during Scan. End of file is expected and not reported by Scan as an error.
@@ -82,4 +66,31 @@ func classesFromFile(filename string) {
 		log.Fatalf("error during file scan: %s", err)
 	}
 
+	// remove duplicates from the class names of the whole file
+	for i := 0; i < len(globalClassNames); i++ {
+		for j := i + 1; j < len(globalClassNames); j++ {
+			if globalClassNames[i] == globalClassNames[j] {
+				globalClassNames = append(globalClassNames[:j], globalClassNames[j+1:]...)
+				j--
+			}
+		}
+	}
+
+	// use buffered writing to log the class names in a freshly created (clean-wiped) file `classes.log`
+	logFile, err := os.Create("classes.log")
+	if err != nil {
+		log.Fatalf("failed to create log file: %s", err)
+	}
+	defer logFile.Close()
+	writer := bufio.NewWriter(logFile)
+	for _, className := range globalClassNames {
+		_, err := writer.WriteString(className + "\n")
+		if err != nil {
+			log.Fatalf("failed to write to log file: %s", err)
+		}
+	}
+	err = writer.Flush()
+	if err != nil {
+		log.Fatalf("failed to flush writer: %s", err)
+	}
 }
