@@ -27,12 +27,12 @@ func htmlFiles(fn func(string)) {
 	cwd, _ := os.Getwd()
 	log.Println("Current working directory:", cwd)
 
-	err := filepath.Walk(cwd, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
 		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
 			log.Printf("serving file: %s", path)
 			fn(path)
 		}
