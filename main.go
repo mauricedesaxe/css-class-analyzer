@@ -17,7 +17,7 @@ import (
 func main() {
 	startTime := time.Now()
 
-	htmlFiles(classesFromFile)
+	htmlFiles()
 
 	endTime := time.Now()
 	elapsed := endTime.Sub(startTime)
@@ -27,7 +27,7 @@ func main() {
 }
 
 // reads directory and children directories for html files and serves them to a function
-func htmlFiles(fn func(string) []string) {
+func htmlFiles() {
 	cwd, _ := os.Getwd()
 
 	// use buffered writing to log the class names in a freshly created (clean-wiped) file `classes.log`
@@ -53,7 +53,7 @@ func htmlFiles(fn func(string) []string) {
 			wg.Add(1)
 			go func(path string) {
 				defer wg.Done()
-				classNames := fn(path)
+				classNames := classesFromFile(path)
 				for _, className := range classNames {
 					classNameChan <- className // Send class names to the channel to be logged
 				}
