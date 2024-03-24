@@ -13,11 +13,20 @@ in a HTML project.
 
 At the time of writing, the performance profile (I ran 100 times) is as follows:
 
+From my local machine (Apple M2 Max 64GB RAM):
 ```
 Total average Duration: 285.482459ms
 Total median Duration: 322.099042ms
 Average time per LoC: 569 ns
 Average time per File: 917950 ns
+```
+
+From Github Actions:
+```
+Total average Duration: 237.337131ms
+Total median Duration: 223.923411ms
+Average time per LoC: 473 ns
+Average time per File: 763141 ns
 ```
 
 This can certainly be improved upon, but it's a good start. A few ideas to explore going forward:
