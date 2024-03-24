@@ -9,7 +9,7 @@ in a HTML project.
 2. Clone the repository and navigate to the root directory.
 3. Use standard Go commands to run the project, tests, etc.
 
-## Performance profile
+## Performance profile of the analyzer (that's the core of the project)
 
 At the time of writing, the performance profile (I ran 100 times) is as follows:
 
@@ -34,12 +34,18 @@ This can certainly be improved upon, but it's a good start. A few ideas to explo
 - Profile memory management outside of the html parser and see if it can be optimized.
 - Profile the html parser and see if it can be optimized, altough I have a gut feeling this is not the main bottleneck right now.
 
-## Feature parity
+## Feature parity of the analyzer
 
 The feature set is incomplete as of now as the parser can only parse `.html` files. In the future,
 you'd add support for other templating languages, such as `.jsx`, `.tsx`, and make use of dependency
 injection (i.e.: `main.go` detects which language is being used and uses the appropriate parser, most of the
 go routine and dir walking logic remaining similar).
+
+## The web component
+
+The API is a simple web server that provides access to the analyzer. It's currently very hacky
+and under-optimized, but it works. It's meant to help create a fun little web tool. Ultimately,
+the analyzer should be developed and used as a CLI tool.
 
 ## Contributing
 

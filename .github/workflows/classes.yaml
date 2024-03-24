@@ -15,7 +15,7 @@ jobs:
           ref: ${{ github.head_ref }}
       
       - name: Save classes.log from base branch
-        run: cp classes.log classes.log.base
+        run: cp ./analyzer/classes.log ./analyzer/classes.log.base
 
       - name: Compare classes.log
         run: |

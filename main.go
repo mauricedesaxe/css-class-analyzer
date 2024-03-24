@@ -2,192 +2,223 @@ package main
 
 import (
 	"bufio"
+	"css-class-analyzer/analyzer"
 	"fmt"
-	"log"
+	"io"
 	"os"
 	"path/filepath"
-	"slices"
-	"strings"
-	"sync"
 	"time"
 
-	"golang.org/x/net/html"
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"github.com/microcosm-cc/bluemonday"
 )
 
+func init() {
+	// clean wipe the inputs and outputs directories
+	err := os.RemoveAll("./inputs")
+	if err != nil {
+		fmt.Printf("Error removing files from inputs directory: %s\n", err)
+	}
+	err = os.RemoveAll("./outputs")
+	if err != nil {
+		fmt.Printf("Error removing files from outputs directory: %s\n", err)
+	}
+	if _, err := os.Stat("./inputs"); os.IsNotExist(err) {
+		err := os.MkdirAll("./inputs", os.ModePerm)
+		if err != nil {
+			fmt.Printf("Error creating inputs directory: %s\n", err)
+		}
+	}
+	if _, err := os.Stat("./outputs"); os.IsNotExist(err) {
+		err := os.MkdirAll("./outputs", os.ModePerm)
+		if err != nil {
+			fmt.Printf("Error creating outputs directory: %s\n", err)
+		}
+	}
+}
+
 func main() {
-	startTime := time.Now()
+	app := fiber.New()
 
-	htmlFiles()
+	app.Get("/", func(c *fiber.Ctx) error {
+		// Get & sanitize the HTML input
+		htmlInput := c.FormValue("html")
+		if htmlInput == "" {
+			return c.SendString("Please provide an HTML input")
+		}
+		p := bluemonday.UGCPolicy()
+		p.AllowAttrs("class").Globally()
+		sanitizedHTML := p.Sanitize(htmlInput)
 
-	if !strings.HasSuffix(os.Args[0], ".test") {
-		endTime := time.Now()
-		elapsed := endTime.Sub(startTime)
-		loc := loc()
-		fileCount := fileCount()
+		// Generate a unique request ID and timestamp
+		requestId := uuid.New().String()
+		timestamp := time.Now().Format("20060102-150405")
 
-		fmt.Println("done in ", elapsed)
-		fmt.Printf("time per loc: %v ns\n", elapsed.Nanoseconds()/int64(loc))
-		fmt.Printf("time per file: %v ns\n", elapsed.Nanoseconds()/int64(fileCount))
-	}
-}
-
-// reads directory and children directories for html files and serves them to a function
-func htmlFiles() {
-	cwd, _ := os.Getwd()
-
-	// use buffered writing to log the class names in a freshly created (clean-wiped) file `classes.log`
-	logFile, err := os.Create("classes.log")
-	if err != nil {
-		log.Fatalf("failed to create log file: %s", err)
-	}
-	defer logFile.Close()
-
-	wg := sync.WaitGroup{}
-	classNameChan := make(chan string, 1000) // Adjust buffer size as needed
-
-	// walk the directory and serve each html file to the function
-	// the function will return the class names of the file
-	// the class names will be appended to a global slice
-	var globalClassNames []string
-	err = filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+		// Create new directories for the input and output files
+		inputDirName := fmt.Sprintf("./inputs/%s-%s", requestId, timestamp)
+		err := os.MkdirAll(inputDirName, os.ModePerm)
 		if err != nil {
-			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-			return err
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating input directory: %s", err))
 		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
-			wg.Add(1)
-			go func(path string) {
-				defer wg.Done()
-				classNames := classesFromFile(path)
-				for _, className := range classNames {
-					classNameChan <- className // Send class names to the channel to be logged
-				}
-			}(path)
-		}
-		return nil
-	})
-	if err != nil {
-		log.Fatalf("error walking the path %q: %v\n", cwd, err)
-	}
-	go func() {
-		for className := range classNameChan {
-			globalClassNames = append(globalClassNames, className)
-		}
-	}()
-	wg.Wait()
-
-	// remove duplicates from the class names of the whole file using a map cause it's faster
-	classMap := make(map[string]bool)
-	var uniqueClassNames []string
-	for _, className := range globalClassNames {
-		if _, exists := classMap[className]; !exists {
-			classMap[className] = true
-			uniqueClassNames = append(uniqueClassNames, className)
-		}
-	}
-	globalClassNames = uniqueClassNames
-
-	// sort the class names
-	slices.Sort(globalClassNames)
-
-	// write the class names to the log file
-	writer := bufio.NewWriter(logFile)
-	for _, className := range globalClassNames {
-		_, err := writer.WriteString(className + "\n")
+		outputDirName := fmt.Sprintf("./outputs/%s-%s", requestId, timestamp)
+		err = os.MkdirAll(outputDirName, os.ModePerm)
 		if err != nil {
-			log.Fatalf("failed to write to log file: %s", err)
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating output directory: %s", err))
 		}
-	}
-	err = writer.Flush()
-	if err != nil {
-		log.Fatalf("failed to flush writer: %s", err)
-	}
-}
 
-// read index.html file and serve each line to a new go routine
-// each go routine will check if the line contains a `class` attribute
-// if it does, it will classesFromFile the class names and log them (initially)
-func classesFromFile(filename string) (globalClassNames []string) {
-	// Open a file to read from
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatalf("failed to open file: %s", err)
-	}
-	defer file.Close()
+		// Write the sanitized HTML to a file
+		htmlFileName := fmt.Sprintf("%s/input.html", inputDirName)
+		file, err := os.Create(htmlFileName)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating file: %s", err))
+		}
+		defer file.Close()
+		writer := bufio.NewWriter(file)
+		_, err = writer.WriteString(sanitizedHTML)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error writing to file: %s", err))
+		}
+		err = writer.Flush()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error flushing writer: %s", err))
+		}
 
-	// Parse the HTML file
-	doc, err := html.Parse(file)
-	if err != nil {
-		log.Fatalf("failed to parse HTML file: %s", err)
-	}
+		// Analyze the HTML input and return the log file
+		logFileName := fmt.Sprintf("%s/classes.log", outputDirName)
+		err = analyzer.Analyze(inputDirName, logFileName)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error analyzing HTML: %s", err))
+		}
 
-	// Define a recursive function to traverse the HTML nodes
-	var traverse func(*html.Node)
-	traverse = func(n *html.Node) {
-		if n.Type == html.ElementNode {
-			for _, a := range n.Attr {
-				if a.Key == "class" {
-					classNames := strings.Fields(a.Val)
-					globalClassNames = append(globalClassNames, classNames...)
-				}
+		// Start a new go routine that will delete the HTML and log files after a sleep duration
+		go func() {
+			time.Sleep(30 * time.Second)
+			err := os.Remove(htmlFileName)
+			if err != nil {
+				fmt.Printf("Error deleting HTML file: %s\n", err)
 			}
+			err = os.Remove(logFileName)
+			if err != nil {
+				fmt.Printf("Error deleting log file: %s\n", err)
+			}
+		}()
+
+		// Check file exists
+		if _, err := os.Stat(logFileName); os.IsNotExist(err) {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating log file: %s", err))
 		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			traverse(c)
-		}
-	}
 
-	// Start traversing from the root node
-	traverse(doc)
-
-	return globalClassNames
-}
-
-// gets lines of code for all files in dir/subdirs of ./pages
-func loc() int {
-	cwd, _ := os.Getwd()
-	var lines int
-	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+		// Read the log file and create a class list
+		logFile, err := os.Open(logFileName)
 		if err != nil {
-			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-			return err
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error opening log file: %s", err))
 		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
-			lines += locFile(path)
+		defer logFile.Close()
+
+		scanner := bufio.NewScanner(logFile)
+		var classNames []string
+		for scanner.Scan() {
+			classNames = append(classNames, scanner.Text())
 		}
-		return nil
+
+		if err := scanner.Err(); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error reading log file: %s", err))
+		}
+
+		// Return the log file
+		return c.JSON(fiber.Map{
+			"classNames": classNames,
+		})
 	})
-	if err != nil {
-		log.Fatalf("error walking the path %q: %v\n", cwd, err)
-	}
-	return lines
-}
 
-// gets lines of code for a single file
-func locFile(file string) int {
-	fileContent, err := os.ReadFile(file)
-	if err != nil {
-		log.Fatalf("failed to read file: %s", err)
-	}
-	lines := strings.Split(string(fileContent), "\n")
-	return len(lines)
-}
-
-func fileCount() int {
-	cwd, _ := os.Getwd()
-	var count int
-	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+	app.Post("/upload", func(c *fiber.Ctx) error {
+		// Retrieve the uploaded formFile
+		formFile, err := c.FormFile("htmlFile")
 		if err != nil {
-			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-			return err
+			return c.Status(fiber.StatusBadRequest).SendString("Upload failed")
 		}
-		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
-			count++
+
+		// Open the uploaded file
+		uploadedFile, err := formFile.Open()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to open uploaded file")
 		}
-		return nil
+		defer uploadedFile.Close()
+
+		// Read the content of the uploaded file
+		htmlInput, err := io.ReadAll(uploadedFile)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to read uploaded file")
+		}
+
+		// Sanitize the HTML input
+		p := bluemonday.UGCPolicy()
+		p.AllowAttrs("class").Globally()
+		sanitizedHTML := p.Sanitize(string(htmlInput))
+
+		// Generate a unique request ID and timestamp
+		requestId := uuid.New().String()
+		timestamp := time.Now().Format("20060102-150405")
+
+		// Create new directories for the input and output files
+		inputDirName := fmt.Sprintf("./inputs/%s-%s", requestId, timestamp)
+		err = os.MkdirAll(inputDirName, os.ModePerm)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating input directory: %s", err))
+		}
+		outputDirName := fmt.Sprintf("./outputs/%s-%s", requestId, timestamp)
+		err = os.MkdirAll(outputDirName, os.ModePerm)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating output directory: %s", err))
+		}
+
+		// Write the sanitized HTML to a file
+		htmlFileName := fmt.Sprintf("%s/input.html", inputDirName)
+		file, err := os.Create(htmlFileName)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating file: %s", err))
+		}
+		defer file.Close()
+		writer := bufio.NewWriter(file)
+		_, err = writer.WriteString(sanitizedHTML)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error writing to file: %s", err))
+		}
+		err = writer.Flush()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error flushing writer: %s", err))
+		}
+
+		// Analyze the HTML input and return the log file
+		logFileName := fmt.Sprintf("%s/classes.log", outputDirName)
+		err = analyzer.Analyze(inputDirName, logFileName)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error analyzing HTML: %s", err))
+		}
+
+		// Start a new go routine that will delete the HTML and log files after a sleep duration
+		go func() {
+			time.Sleep(30 * time.Second)
+			err := os.Remove(htmlFileName)
+			if err != nil {
+				fmt.Printf("Error deleting HTML file: %s\n", err)
+			}
+			err = os.Remove(logFileName)
+			if err != nil {
+				fmt.Printf("Error deleting log file: %s\n", err)
+			}
+		}()
+
+		// Check file exists
+		if _, err := os.Stat(logFileName); os.IsNotExist(err) {
+			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error creating log file: %s", err))
+		}
+
+		// Return the log file
+		c.Set(fiber.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%s", filepath.Base(logFileName)))
+		return c.SendFile(logFileName)
 	})
-	if err != nil {
-		log.Fatalf("error walking the path %q: %v\n", cwd, err)
-	}
-	return count
+
+	app.Listen(":3000")
 }

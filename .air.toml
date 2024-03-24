@@ -1,0 +1,12 @@
+
+# Config file for [Air](https://github.com/cosmtrek/air) in TOML format
+
+# Working directory
+# . or absolute path, please note that the directories following must be under root.
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ."
+exclude_dir = ["inputs", "outputs"]
+exclude_regex = ["\\.html$", "\\.log$"]

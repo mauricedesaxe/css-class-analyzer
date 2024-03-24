@@ -1,27 +1,36 @@
-package main
+package analyzer
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
 
-func TestMainSpeed(t *testing.T) {
+func TestSpeed(t *testing.T) {
 	const runs = 100
 	var totalDuration time.Duration
 	var durations []time.Duration
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %s", err)
+	}
+
 	for i := 0; i < runs; i++ {
 		startTime := time.Now()
-		main()
+		err = Analyze(cwd, "classes.log")
+		if err != nil {
+			t.Fatalf("failed to analyze: %s", err)
+		}
 		totalDuration += time.Since(startTime)
 		durations = append(durations, time.Since(startTime))
 	}
 
 	averageDuration := totalDuration / runs
 	medianDuration := durations[runs/2]
-	loc := loc()
-	fileCount := fileCount()
+	loc := loc(cwd)
+	fileCount := fileCount(cwd)
 	fmt.Printf("Did %d runs\n", runs)
 	fmt.Printf("Total average Duration: %s\n", averageDuration)
 	fmt.Printf("Total median Duration: %s\n", medianDuration)
