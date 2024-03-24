@@ -9,18 +9,13 @@ jobs:
   check-classes-log:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout the base branch
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.base_ref }}
-
-      - name: Save classes.log from base branch
-        run: cp classes.log classes.log.base
-
       - name: Checkout the PR branch
         uses: actions/checkout@v2
         with:
           ref: ${{ github.head_ref }}
+      
+      - name: Save classes.log from base branch
+        run: cp classes.log classes.log.base
 
       - name: Compare classes.log
         run: |
