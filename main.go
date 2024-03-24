@@ -19,10 +19,15 @@ func main() {
 
 	htmlFiles()
 
-	endTime := time.Now()
-	elapsed := endTime.Sub(startTime)
 	if !strings.HasSuffix(os.Args[0], ".test") {
+		endTime := time.Now()
+		elapsed := endTime.Sub(startTime)
+		loc := loc()
+		fileCount := fileCount()
+
 		fmt.Println("done in ", elapsed)
+		fmt.Printf("time per loc: %v ns\n", elapsed.Nanoseconds()/int64(loc))
+		fmt.Printf("time per file: %v ns\n", elapsed.Nanoseconds()/int64(fileCount))
 	}
 }
 
@@ -136,4 +141,53 @@ func classesFromFile(filename string) (globalClassNames []string) {
 	traverse(doc)
 
 	return globalClassNames
+}
+
+// gets lines of code for all files in dir/subdirs of ./pages
+func loc() int {
+	cwd, _ := os.Getwd()
+	var lines int
+	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
+			lines += locFile(path)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("error walking the path %q: %v\n", cwd, err)
+	}
+	return lines
+}
+
+// gets lines of code for a single file
+func locFile(file string) int {
+	fileContent, err := os.ReadFile(file)
+	if err != nil {
+		log.Fatalf("failed to read file: %s", err)
+	}
+	lines := strings.Split(string(fileContent), "\n")
+	return len(lines)
+}
+
+func fileCount() int {
+	cwd, _ := os.Getwd()
+	var count int
+	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
+			count++
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("error walking the path %q: %v\n", cwd, err)
+	}
+	return count
 }

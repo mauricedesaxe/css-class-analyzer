@@ -20,6 +20,11 @@ func TestMainSpeed(t *testing.T) {
 
 	averageDuration := totalDuration / runs
 	medianDuration := durations[runs/2]
-	fmt.Printf("Average Duration over %d runs: %s\n", runs, averageDuration)
-	fmt.Printf("Median Duration over %d runs: %s\n", runs, medianDuration)
+	loc := loc()
+	fileCount := fileCount()
+	fmt.Printf("Did %d runs\n", runs)
+	fmt.Printf("Total average Duration: %s\n", averageDuration)
+	fmt.Printf("Total median Duration: %s\n", medianDuration)
+	fmt.Printf("Average time per LoC: %v ns\n", averageDuration.Nanoseconds()/int64(loc))
+	fmt.Printf("Average time per File: %v ns\n", averageDuration.Nanoseconds()/int64(fileCount))
 }
