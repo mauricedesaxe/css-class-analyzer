@@ -1,19 +1,25 @@
-package main
+package analyzer
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
 
-func TestMainSpeed(t *testing.T) {
+func TestSpeed(t *testing.T) {
 	const runs = 100
 	var totalDuration time.Duration
 	var durations []time.Duration
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %s", err)
+	}
+
 	for i := 0; i < runs; i++ {
 		startTime := time.Now()
-		main()
+		Analyze(cwd, "classes.log")
 		totalDuration += time.Since(startTime)
 		durations = append(durations, time.Since(startTime))
 	}

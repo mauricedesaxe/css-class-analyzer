@@ -8,4 +8,4 @@ tmp_dir = "tmp"
 
 [build]
 cmd = "go build -o ./tmp/main ."
-exclude_dir = ["pages"]
+exclude_dir = ["./analyzer/pages"]
