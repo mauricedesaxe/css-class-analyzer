@@ -14,29 +14,35 @@ import (
 	"golang.org/x/net/html"
 )
 
-func Analyze(dir string, output string) {
+func Analyze(dir string, output string) (err error) {
 	startTime := time.Now()
 
-	htmlFiles(dir, output)
+	err = htmlFiles(dir, output)
+	if err != nil {
+		return err
+	}
 
 	if !strings.HasSuffix(os.Args[0], ".test") {
 		endTime := time.Now()
 		elapsed := endTime.Sub(startTime)
-		loc := loc()
-		fileCount := fileCount()
+		loc := loc(dir)
+		fileCount := fileCount(dir)
 
 		fmt.Println("done in ", elapsed)
 		fmt.Printf("time per loc: %v ns\n", elapsed.Nanoseconds()/int64(loc))
 		fmt.Printf("time per file: %v ns\n", elapsed.Nanoseconds()/int64(fileCount))
 	}
+	return nil
 }
 
-// reads directory and children directories for html files and serves them to a function
-func htmlFiles(dir string, output string) {
+// reads directory and children directories for html files and serves them to a function to get class names
+// ultimately writes the class names to a log file
+func htmlFiles(dir string, output string) (err error) {
+
 	// use buffered writing to log the class names in a freshly created (clean-wiped) file
 	logFile, err := os.Create(output)
 	if err != nil {
-		log.Fatalf("failed to create log file: %s", err)
+		return err
 	}
 	defer logFile.Close()
 
@@ -56,8 +62,11 @@ func htmlFiles(dir string, output string) {
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
 			walkDirWg.Add(1)
 			go func(path string) {
-				classNames := classesFromFile(path)
 				defer walkDirWg.Done()
+				classNames, err := classesFromFile(path)
+				if err != nil {
+					log.Printf("error getting class names from file %q: %v\n", path, err)
+				}
 				for _, className := range classNames {
 					classNameChan <- className // Send class names to the channel to be logged
 				}
@@ -99,30 +108,32 @@ func htmlFiles(dir string, output string) {
 	for _, className := range globalClassNames {
 		_, err := writer.WriteString(className + "\n")
 		if err != nil {
-			log.Fatalf("failed to write to log file: %s", err)
+			return err
 		}
 	}
 	err = writer.Flush()
 	if err != nil {
-		log.Fatalf("failed to flush writer: %s", err)
+		return err
 	}
+
+	return nil
 }
 
 // read index.html file and serve each line to a new go routine
 // each go routine will check if the line contains a `class` attribute
 // if it does, it will classesFromFile the class names and log them (initially)
-func classesFromFile(filename string) (globalClassNames []string) {
+func classesFromFile(filename string) (globalClassNames []string, err error) {
 	// Open a file to read from
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("failed to open file: %s", err)
+		return nil, err
 	}
 	defer file.Close()
 
 	// Parse the HTML file
 	doc, err := html.Parse(file)
 	if err != nil {
-		log.Fatalf("failed to parse HTML file: %s", err)
+		return nil, err
 	}
 
 	// Define a recursive function to traverse the HTML nodes
@@ -144,14 +155,13 @@ func classesFromFile(filename string) (globalClassNames []string) {
 	// Start traversing from the root node
 	traverse(doc)
 
-	return globalClassNames
+	return globalClassNames, nil
 }
 
 // gets lines of code for all files in dir/subdirs of ./pages
-func loc() int {
-	cwd, _ := os.Getwd()
+func loc(dir string) int {
 	var lines int
-	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
@@ -162,7 +172,7 @@ func loc() int {
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("error walking the path %q: %v\n", cwd, err)
+		log.Fatalf("error walking the path %q: %v\n", dir, err)
 	}
 	return lines
 }
@@ -177,10 +187,9 @@ func locFile(file string) int {
 	return len(lines)
 }
 
-func fileCount() int {
-	cwd, _ := os.Getwd()
+func fileCount(dir string) int {
 	var count int
-	err := filepath.WalkDir(cwd, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 			return err
@@ -191,7 +200,7 @@ func fileCount() int {
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("error walking the path %q: %v\n", cwd, err)
+		log.Fatalf("error walking the path %q: %v\n", dir, err)
 	}
 	return count
 }

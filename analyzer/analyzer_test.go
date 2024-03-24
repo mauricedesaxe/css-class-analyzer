@@ -19,15 +19,18 @@ func TestSpeed(t *testing.T) {
 
 	for i := 0; i < runs; i++ {
 		startTime := time.Now()
-		Analyze(cwd, "classes.log")
+		err = Analyze(cwd, "classes.log")
+		if err != nil {
+			t.Fatalf("failed to analyze: %s", err)
+		}
 		totalDuration += time.Since(startTime)
 		durations = append(durations, time.Since(startTime))
 	}
 
 	averageDuration := totalDuration / runs
 	medianDuration := durations[runs/2]
-	loc := loc()
-	fileCount := fileCount()
+	loc := loc(cwd)
+	fileCount := fileCount(cwd)
 	fmt.Printf("Did %d runs\n", runs)
 	fmt.Printf("Total average Duration: %s\n", averageDuration)
 	fmt.Printf("Total median Duration: %s\n", medianDuration)

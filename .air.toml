@@ -8,4 +8,5 @@ tmp_dir = "tmp"
 
 [build]
 cmd = "go build -o ./tmp/main ."
-exclude_dir = ["./analyzer/pages"]
+exclude_dir = ["inputs", "outputs"]
+exclude_regex = ["\\.html$", "\\.log$"]
