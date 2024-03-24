@@ -40,7 +40,8 @@ func htmlFiles(dir string, output string) {
 	}
 	defer logFile.Close()
 
-	wg := sync.WaitGroup{}
+	walkDirWg := sync.WaitGroup{}
+	classStoreWg := sync.WaitGroup{}
 	classNameChan := make(chan string, 1000) // Adjust buffer size as needed
 
 	// walk the directory and serve each html file to the function
@@ -53,10 +54,10 @@ func htmlFiles(dir string, output string) {
 			return err
 		}
 		if !d.IsDir() && strings.HasSuffix(d.Name(), ".html") {
-			wg.Add(1)
+			walkDirWg.Add(1)
 			go func(path string) {
-				defer wg.Done()
 				classNames := classesFromFile(path)
+				defer walkDirWg.Done()
 				for _, className := range classNames {
 					classNameChan <- className // Send class names to the channel to be logged
 				}
@@ -67,12 +68,17 @@ func htmlFiles(dir string, output string) {
 	if err != nil {
 		log.Fatalf("error walking the path %q: %v\n", dir, err)
 	}
+
+	classStoreWg.Add(1)
 	go func() {
+		defer classStoreWg.Done()
 		for className := range classNameChan {
 			globalClassNames = append(globalClassNames, className)
 		}
 	}()
-	wg.Wait()
+	walkDirWg.Wait()
+	close(classNameChan)
+	classStoreWg.Wait()
 
 	// remove duplicates from the class names of the whole file using a map cause it's faster
 	classMap := make(map[string]bool)
