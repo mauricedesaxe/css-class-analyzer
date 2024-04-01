@@ -3,6 +3,8 @@ package analyzer
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -38,7 +40,7 @@ func TestSpeed(t *testing.T) {
 	fmt.Printf("Average time per File: %v ns\n", averageDuration.Nanoseconds()/int64(fileCount))
 }
 
-func TestAccuracy(t *testing.T) {
+func TestClassesFromFileAccuracy(t *testing.T) {
 	sampleHTML := `<div class="bg-slate-950 text-gray-100 max-w-4xl mx-auto rounded-lg shadow-lg"><form class="flex flex-col gap-4"><div class="bg-red-500 p-2 rounded-md">Invalid HTML. Please enter valid HTML content.</div><textarea placeholder="Paste your HTML here" class="bg-slate-800 border border-slate-700 placeholder-gray-400 text-white rounded-md p-2">dialog</textarea><button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed">Analyze</button></form><div class="flex flex-col gap-2 pt-6"></div></div>`
 	expectedClasses := []string{"bg-slate-950", "text-gray-100", "max-w-4xl", "mx-auto", "rounded-lg", "shadow-lg", "flex", "flex-col", "gap-4", "bg-red-500", "p-2", "rounded-md", "bg-slate-800", "border", "border-slate-700", "placeholder-gray-400", "text-white", "bg-blue-500", "hover:bg-blue-700", "font-bold", "py-2", "px-4", "rounded", "disabled:bg-gray-500", "disabled:cursor-not-allowed", "gap-2", "pt-6"}
 
@@ -103,6 +105,76 @@ func TestAccuracy(t *testing.T) {
 	// log some information
 	t.Logf("Expected classes that weren't found: %d", len(expectedClassesThatWerentFound))
 	t.Logf("Unexpected classes found: %d", len(unexpectedClassesFound))
+}
+
+func TestHtmlFilesAccuracy(t *testing.T) {
+	sampleHTML := `<div class="bg-slate-950 text-gray-100 max-w-4xl mx-auto rounded-lg shadow-lg"><form class="flex flex-col gap-4"><div class="bg-red-500 p-2 rounded-md">Invalid HTML. Please enter valid HTML content.</div><textarea placeholder="Paste your HTML here" class="bg-slate-800 border border-slate-700 placeholder-gray-400 text-white rounded-md p-2">dialog</textarea><button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed">Analyze</button></form><div class="flex flex-col gap-2 pt-6"></div></div>`
+	expectedClasses := []string{"bg-slate-950", "text-gray-100", "max-w-4xl", "mx-auto", "rounded-lg", "shadow-lg", "flex", "flex-col", "gap-4", "bg-red-500", "p-2", "rounded-md", "bg-slate-800", "border", "border-slate-700", "placeholder-gray-400", "text-white", "bg-blue-500", "hover:bg-blue-700", "font-bold", "py-2", "px-4", "rounded", "disabled:bg-gray-500", "disabled:cursor-not-allowed", "gap-2", "pt-6"}
+
+	// Create a temporary directory
+	tempDir, err := os.MkdirTemp("", "testHtmlFiles")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create a sample HTML file in the temporary directory
+	htmlFilePath := filepath.Join(tempDir, "sample.html")
+	err = os.WriteFile(htmlFilePath, []byte(sampleHTML), 0644)
+	if err != nil {
+		t.Fatalf("failed to write sample HTML file: %s", err)
+	}
+
+	// Define the output log file path
+	outputLogPath := filepath.Join(tempDir, "classes.log")
+
+	// Run the htmlFiles function
+	err = htmlFiles(tempDir, outputLogPath)
+	if err != nil {
+		t.Fatalf("htmlFiles failed: %s", err)
+	}
+
+	// Read the output log file
+	outputClasses, err := os.ReadFile(outputLogPath)
+	if err != nil {
+		t.Fatalf("failed to read output log file: %s", err)
+	}
+
+	// Split the output into lines (class names)
+	receivedClasses := strings.Split(strings.TrimSpace(string(outputClasses)), "\n")
+
+	// check that the length of `receivedClasses` is equal to the length of `expectedClasses`
+	if len(receivedClasses) != len(expectedClasses) {
+		t.Errorf("Expected %d classes, got %d", len(expectedClasses), len(receivedClasses))
+	}
+
+	// check that the classes in `expectedClasses` are present in the `receivedClasses`
+	var expectedClassesThatWerentFound []string
+	for _, className := range expectedClasses {
+		if !contains(receivedClasses, className) {
+			expectedClassesThatWerentFound = append(expectedClassesThatWerentFound, className)
+		}
+	}
+	if len(expectedClassesThatWerentFound) > 0 {
+		t.Errorf("Expected classes that weren't found: %s", expectedClassesThatWerentFound)
+	}
+
+	// check that there are no classes in `receivedClasses` that are not in `expectedClasses`
+	var unexpectedClassesFound []string
+	for _, className := range receivedClasses {
+		if !contains(expectedClasses, className) {
+			unexpectedClassesFound = append(unexpectedClassesFound, className)
+		}
+	}
+	if len(unexpectedClassesFound) > 0 {
+		t.Errorf("Unexpected classes found: %s", unexpectedClassesFound)
+	}
+
+	// log some information
+	t.Logf("Expected classes that weren't found: %d", len(expectedClassesThatWerentFound))
+	t.Logf("Unexpected classes found: %d", len(unexpectedClassesFound))
+	t.Logf("Expected classes: %d", len(expectedClasses))
+	t.Logf("Received classes: %d", len(receivedClasses))
 }
 
 func contains(classes []string, class string) bool {
