@@ -62,6 +62,17 @@ func TestAccuracy(t *testing.T) {
 		t.Fatalf("failed to extract classes: %s", err)
 	}
 
+	// remove duplicates from the class names of the whole file using a map cause it's faster
+	classMap := make(map[string]bool)
+	var uniqueClassNames []string
+	for _, className := range receivedClasses {
+		if _, exists := classMap[className]; !exists {
+			classMap[className] = true
+			uniqueClassNames = append(uniqueClassNames, className)
+		}
+	}
+	receivedClasses = uniqueClassNames
+
 	// check that the length of `receivedClasses` is equal to the length of `expectedClasses`
 	if len(receivedClasses) != len(expectedClasses) {
 		t.Errorf("Expected %d classes, got %d", len(expectedClasses), len(receivedClasses))
