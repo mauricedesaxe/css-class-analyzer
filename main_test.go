@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -48,7 +47,6 @@ func TestEndpointAccuracy(t *testing.T) {
 		t.Fatalf("Failed to decode response body: %v", err)
 	}
 	receivedClasses := result.ClassNames
-	log.Printf("Received classes: %v", receivedClasses)
 
 	// check that the length of `receivedClasses` is equal to the length of `expectedClasses`
 	if len(receivedClasses) != len(expectedClasses) {
