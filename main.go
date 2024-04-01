@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -40,6 +41,11 @@ func init() {
 
 func main() {
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:4321, https://leetsoftware.com",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 
 	app.Post("/", func(c *fiber.Ctx) error {
 		// Get & sanitize the HTML input
