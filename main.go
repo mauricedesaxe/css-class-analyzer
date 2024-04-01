@@ -92,10 +92,12 @@ func main() {
 
 		// Analyze the HTML input and return the log file
 		logFileName := fmt.Sprintf("%s/classes.log", outputDirName)
+		start := time.Now()
 		err = analyzer.Analyze(inputDirName, logFileName)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString(fmt.Sprintf("Error analyzing HTML: %s", err))
 		}
+		elapsed := time.Since(start)
 
 		// Start a new go routine that will delete the HTML and log files after a sleep duration
 		go func() {
@@ -134,7 +136,8 @@ func main() {
 
 		// Return the log file
 		return c.JSON(fiber.Map{
-			"classNames": classNames,
+			"classNames":   classNames,
+			"analysisTime": elapsed.String(),
 		})
 	})
 
