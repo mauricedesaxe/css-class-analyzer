@@ -41,9 +41,9 @@ func init() {
 func main() {
 	app := fiber.New()
 
-	app.Get("/", func(c *fiber.Ctx) error {
+	app.Post("/", func(c *fiber.Ctx) error {
 		// Get & sanitize the HTML input
-		htmlInput := c.FormValue("html")
+		htmlInput := c.FormValue("htmlInput")
 		if htmlInput == "" {
 			return c.SendString("Please provide an HTML input")
 		}
