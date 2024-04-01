@@ -49,7 +49,7 @@ func main() {
 
 	app.Post("/", func(c *fiber.Ctx) error {
 		// Get & sanitize the HTML input
-		htmlInput := c.FormValue("htmlInput")
+		htmlInput := c.FormValue("html")
 		if htmlInput == "" {
 			return c.SendString("Please provide an HTML input")
 		}
