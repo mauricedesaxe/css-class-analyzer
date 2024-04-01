@@ -16,7 +16,7 @@ import (
 func TestEndpointAccuracy(t *testing.T) {
 	// Define the sample HTML input and expected classes
 	sampleHTML := `<div class="bg-slate-950 text-gray-100 max-w-4xl mx-auto rounded-lg shadow-lg"><form class="flex flex-col gap-4"><div class="bg-red-500 p-2 rounded-md">Invalid HTML. Please enter valid HTML content.</div><textarea placeholder="Paste your HTML here" class="bg-slate-800 border border-slate-700 placeholder-gray-400 text-white rounded-md p-2">dialog</textarea><button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed">Analyze</button></form><div class="flex flex-col gap-2 pt-6"></div></div>`
-	expectedClasses := []string{"bg-slate-950", "text-gray-100", "max-w-4xl", "mx-auto", "rounded-lg", "shadow-lg", "flex", "flex-col", "gap-4", "bg-red-500", "p-2", "rounded-md", "bg-slate-800", "border", "border-slate-700", "placeholder-gray-400", "text-white", "bg-blue-500", "hover:bg-blue-700", "text-white", "font-bold", "py-2", "px-4", "rounded", "disabled:bg-gray-500", "disabled:cursor-not-allowed", "gap-2", "pt-6"}
+	expectedClasses := []string{"bg-slate-950", "text-gray-100", "max-w-4xl", "mx-auto", "rounded-lg", "shadow-lg", "flex", "flex-col", "gap-4", "bg-red-500", "p-2", "rounded-md", "bg-slate-800", "border", "border-slate-700", "placeholder-gray-400", "text-white", "bg-blue-500", "hover:bg-blue-700", "font-bold", "py-2", "px-4", "rounded", "disabled:bg-gray-500", "disabled:cursor-not-allowed", "gap-2", "pt-6"}
 
 	// Start a mock fiber app with the postHTMLString handler
 	app := fiber.New()
