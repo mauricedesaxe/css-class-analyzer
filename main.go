@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -61,6 +62,7 @@ func postHTMLString(c *fiber.Ctx) error {
 	}
 	p := bluemonday.UGCPolicy()
 	p.AllowAttrs("class").Globally()
+	p.AllowElementsMatching(regexp.MustCompile(".*"))
 	sanitizedHTML := p.Sanitize(htmlInput)
 
 	// Generate a unique request ID and timestamp
